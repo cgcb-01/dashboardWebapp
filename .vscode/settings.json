@@ -1,6 +1,5 @@
 {
-    "python-envs.defaultEnvManager": "ms-python.python:venv",
-    "python-envs.defaultPackageManager": "ms-python.python:pip",
-    "html.validate.styles": false,
-  "html.validate.scripts": false
+    "python.defaultInterpreterPath": "%USERPROFILE%\\AppData\\Roaming\\uv\\python\\cpython-3.14.3-windows-x86_64-none\\python.exe",
+    "python.terminal.activateEnvironment": true,
+    "terminal.integrated.defaultProfile.windows": "PowerShell"
 }
