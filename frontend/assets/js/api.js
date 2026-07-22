@@ -45,15 +45,23 @@ const OfflineQueue = {
 };
 
 // ── Core fetch wrapper ─────────────────────────────────────────────────────────
+// ── Core fetch wrapper ─────────────────────────────────────────────────────────
 async function api(path, opts = {}) {
   const token = Auth.getToken();
-  const headers = { 'Content-Type': 'application/json', ...(opts.headers || {}) };
+  const isFormData = opts.body instanceof FormData;
+  
+  const headers = { ...(opts.headers || {}) };
+  // Only default to JSON if body is NOT FormData and Content-Type isn't set
+  if (!isFormData && !headers['Content-Type']) {
+    headers['Content-Type'] = 'application/json';
+  }
   if (token) headers['Authorization'] = `Bearer ${token}`;
 
   const response = await fetch(API_BASE + path, {
     ...opts,
     headers,
-    body: opts.body ? (typeof opts.body === 'string' ? opts.body : JSON.stringify(opts.body)) : undefined,
+    // Do NOT stringify FormData
+    body: isFormData ? opts.body : (opts.body ? (typeof opts.body === 'string' ? opts.body : JSON.stringify(opts.body)) : undefined),
   });
 
   if (response.status === 204) return null;

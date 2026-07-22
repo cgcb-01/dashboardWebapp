@@ -1,5 +1,4 @@
 """Pydantic schemas — all request/response shapes."""
-
 from pydantic import BaseModel, EmailStr, Field
 from typing import Optional, List, Dict, Any
 from datetime import datetime
@@ -14,7 +13,7 @@ class SubjectName(str, Enum):
 
 class QuestionType(str, Enum):
     MCQ_SINGLE="MCQ_SINGLE"; MCQ_MULTIPLE="MCQ_MULTIPLE"
-    NUMERICAL="NUMERICAL";   MATRIX_MATCH="MATRIX_MATCH"
+    NUMERICAL="NUMERICAL"; MATRIX_MATCH="MATRIX_MATCH"
 
 class ContentFormat(str, Enum):
     TEXT="TEXT"; IMAGE="IMAGE"; PDF="PDF"
@@ -27,79 +26,157 @@ class AnswerStatus(str, Enum):
     MARKED_FOR_REVIEW="MARKED_FOR_REVIEW"; ANSWERED_AND_MARKED="ANSWERED_AND_MARKED"
 
 class SubscriptionPlan(str, Enum):
-    MONTHLY="MONTHLY"; INTRO="INTRO"; HALF_YEARLY="HALF_YEARLY"; ANNUAL="ANNUAL"
+    INTRO="INTRO"; MONTHLY="MONTHLY"; HALF_YEARLY="HALF_YEARLY"; ANNUAL="ANNUAL"
 
 class SubscriptionStatus(str, Enum):
     ACTIVE="ACTIVE"; EXPIRED="EXPIRED"; CANCELLED="CANCELLED"
 
 
-# ── Auth ─────────────────────────────────────────────────────────────────────
+# ── Auth ───────────────────────────────────────────────────────────────────────
 class UserCreate(BaseModel):
-    email: EmailStr
-    full_name: Optional[str] = None
-    password: str = Field(min_length=6)
+    email: EmailStr; full_name: Optional[str]=None; password: str=Field(min_length=6)
 
 class UserLogin(BaseModel):
-    email: EmailStr
-    password: str
+    email: EmailStr; password: str
 
 class UserOut(BaseModel):
-    id: int; email: str; full_name: Optional[str]; is_admin: bool
-    is_premium: bool = False
-    class Config: from_attributes = True
+    id: int; email: str; full_name: Optional[str]; is_admin: bool; is_premium: bool=False
+    class Config: from_attributes=True
 
 class Token(BaseModel):
-    access_token: str; token_type: str = "bearer"; user: UserOut
+    access_token: str; token_type: str="bearer"; user: UserOut
 
 
-# ── PYQ browse ───────────────────────────────────────────────────────────────
+# ── PYQ browse ─────────────────────────────────────────────────────────────────
 class ShiftOut(BaseModel):
-    id: int; label: str; exam_date: Optional[str]; question_count: int = 0
-    class Config: from_attributes = True
+    id: int; label: str; exam_date: Optional[str]; question_count: int=0
+    class Config: from_attributes=True
 
 class YearOut(BaseModel):
-    id: int; year: int; shifts: List[ShiftOut] = []
-    class Config: from_attributes = True
+    id: int; year: int; shifts: List[ShiftOut]=[]
+    class Config: from_attributes=True
 
 class ExamOut(BaseModel):
-    id: int; type: ExamType; display_name: str; years: List[YearOut] = []
-    class Config: from_attributes = True
+    id: int; type: ExamType; display_name: str; years: List[YearOut]=[]
+    class Config: from_attributes=True
 
 
-# ── Questions ─────────────────────────────────────────────────────────────────
+# ── Questions ──────────────────────────────────────────────────────────────────
 class QuestionPublic(BaseModel):
+    """What the exam engine receives — no correct_answer, no solution."""
     id: int; question_number: int; subject: SubjectName
     question_type: QuestionType; question_format: ContentFormat
     question_text: Optional[str]; question_image_path: Optional[str]
     question_pdf_path: Optional[str]
+    # option text
     option_a: Optional[str]; option_b: Optional[str]
     option_c: Optional[str]; option_d: Optional[str]
-    options_image_path: Optional[str]
+    # per-option images (NEW)
+    option_a_image_path: Optional[str]=None
+    option_b_image_path: Optional[str]=None
+    option_c_image_path: Optional[str]=None
+    option_d_image_path: Optional[str]=None
+    # combined options image
+    options_image_path: Optional[str]=None
     marks_correct: float; marks_incorrect: float
-    class Config: from_attributes = True
+    class Config: from_attributes=True
 
 class QuestionWithSolution(QuestionPublic):
+    """Used in solution-view and review mode."""
     correct_answer: str; solution_format: ContentFormat
     solution_text: Optional[str]; solution_image_path: Optional[str]
     solution_pdf_path: Optional[str]
 
 class QuestionCreate(BaseModel):
+    """Admin: create a new question."""
     shift_id: Optional[int]=None; module_id: Optional[int]=None
     dpp_id: Optional[int]=None;   mock_test_id: Optional[int]=None
-    subject: SubjectName; question_type: QuestionType = QuestionType.MCQ_SINGLE
-    question_number: int = 1; question_format: ContentFormat = ContentFormat.TEXT
-    question_text: Optional[str]=None; question_image_path: Optional[str]=None
+    subject: SubjectName
+    question_type: QuestionType=QuestionType.MCQ_SINGLE
+    question_number: int=1
+    question_format: ContentFormat=ContentFormat.TEXT
+    question_text: Optional[str]=None
+    question_image_path: Optional[str]=None
     question_pdf_path: Optional[str]=None
     option_a: Optional[str]=None; option_b: Optional[str]=None
     option_c: Optional[str]=None; option_d: Optional[str]=None
+    option_a_image_path: Optional[str]=None
+    option_b_image_path: Optional[str]=None
+    option_c_image_path: Optional[str]=None
+    option_d_image_path: Optional[str]=None
     options_image_path: Optional[str]=None
-    correct_answer: str; marks_correct: float=4.0; marks_incorrect: float=-1.0
+    correct_answer: str
+    marks_correct: float=4.0; marks_incorrect: float=-1.0
     solution_format: ContentFormat=ContentFormat.TEXT
-    solution_text: Optional[str]=None; solution_image_path: Optional[str]=None
-    solution_pdf_path: Optional[str]=None; topic: Optional[str]=None
+    solution_text: Optional[str]=None
+    solution_image_path: Optional[str]=None
+    solution_pdf_path: Optional[str]=None
+    topic: Optional[str]=None
+
+class QuestionEdit(BaseModel):
+    """Admin: edit any subset of question fields. All optional — only sends changed fields."""
+    subject: Optional[SubjectName]=None
+    question_type: Optional[QuestionType]=None
+    question_number: Optional[int]=None
+    question_format: Optional[ContentFormat]=None
+    question_text: Optional[str]=None
+    question_image_path: Optional[str]=None
+    question_pdf_path: Optional[str]=None
+    option_a: Optional[str]=None; option_b: Optional[str]=None
+    option_c: Optional[str]=None; option_d: Optional[str]=None
+    option_a_image_path: Optional[str]=None
+    option_b_image_path: Optional[str]=None
+    option_c_image_path: Optional[str]=None
+    option_d_image_path: Optional[str]=None
+    options_image_path: Optional[str]=None
+    correct_answer: Optional[str]=None
+    marks_correct: Optional[float]=None
+    marks_incorrect: Optional[float]=None
+    solution_format: Optional[ContentFormat]=None
+    solution_text: Optional[str]=None
+    solution_image_path: Optional[str]=None
+    solution_pdf_path: Optional[str]=None
+    topic: Optional[str]=None
+
+class QuestionOut(BaseModel):
+    """Full question returned to admin (includes answer + solution)."""
+    id: int; question_number: int; subject: SubjectName
+    question_type: QuestionType; question_format: ContentFormat
+    question_text: Optional[str]; question_image_path: Optional[str]
+    option_a: Optional[str]; option_b: Optional[str]
+    option_c: Optional[str]; option_d: Optional[str]
+    option_a_image_path: Optional[str]=None
+    option_b_image_path: Optional[str]=None
+    option_c_image_path: Optional[str]=None
+    option_d_image_path: Optional[str]=None
+    options_image_path: Optional[str]=None
+    correct_answer: str; marks_correct: float; marks_incorrect: float
+    solution_format: Optional[ContentFormat]=None
+    solution_text: Optional[str]; solution_image_path: Optional[str]
+    topic: Optional[str]
+    class Config: from_attributes=True
 
 
-# ── Attempt engine ────────────────────────────────────────────────────────────
+# ── Content toggle schemas (admin: flip free/premium, timing, marking) ─────────
+class DppEdit(BaseModel):
+    title: Optional[str]=None
+    chapter_name: Optional[str]=None
+    duration_minutes: Optional[int]=None
+    is_free_for_non_premium: Optional[bool]=None
+
+class ModuleEdit(BaseModel):
+    name: Optional[str]=None
+    duration_minutes: Optional[int]=None
+    is_free_for_non_premium: Optional[bool]=None
+
+class MockTestEdit(BaseModel):
+    title: Optional[str]=None
+    duration_minutes: Optional[int]=None
+    scheduled_date: Optional[str]=None
+    is_free_for_non_premium: Optional[bool]=None
+
+
+# ── Attempt engine ─────────────────────────────────────────────────────────────
 class AttemptStart(BaseModel):
     shift_id: Optional[int]=None; dpp_id: Optional[int]=None
     module_id: Optional[int]=None; mock_test_id: Optional[int]=None
@@ -108,14 +185,14 @@ class AttemptStart(BaseModel):
 class AttemptAnswerOut(BaseModel):
     id: int; question_id: int; selected_answer: Optional[str]
     status: AnswerStatus; time_spent_seconds: int
-    class Config: from_attributes = True
+    class Config: from_attributes=True
 
 class AttemptOut(BaseModel):
     id: int; duration_minutes_allotted: int; started_at: datetime
     status: AttemptStatus; total_questions: int
-    questions: List[QuestionPublic] = []; answers: List[AttemptAnswerOut] = []
-    camera_session_id: Optional[int] = None
-    class Config: from_attributes = True
+    questions: List[QuestionPublic]=[]; answers: List[AttemptAnswerOut]=[]
+    camera_session_id: Optional[int]=None
+    class Config: from_attributes=True
 
 class AnswerSubmit(BaseModel):
     question_id: int; selected_answer: Optional[str]=None
@@ -128,8 +205,7 @@ class AttemptResult(BaseModel):
     attempt_id: int; total_questions: int; attempted_count: int
     correct_count: int; incorrect_count: int; unattempted_count: int
     score: float; max_score: float; time_taken_seconds: int
-    subject_breakdown: Dict[str, Any] = {}
-    percentage: float = 0.0
+    subject_breakdown: Dict[str,Any]={}; percentage: float=0.0
 
 class OfflineAttemptSync(BaseModel):
     shift_id: Optional[int]=None; dpp_id: Optional[int]=None
@@ -138,57 +214,50 @@ class OfflineAttemptSync(BaseModel):
     answers: List[AnswerSubmit]
 
 
-# ── Premium content tree ──────────────────────────────────────────────────────
+# ── Premium tree ───────────────────────────────────────────────────────────────
 class ModuleOut(BaseModel):
-    id: int; name: str; order_index: int; duration_minutes: int; question_count: int=0
-    class Config: from_attributes = True
+    id: int; name: str; order_index: int; duration_minutes: int
+    question_count: int=0; is_free_for_non_premium: bool=False
+    class Config: from_attributes=True
 
 class ChapterOut(BaseModel):
     id: int; name: str; order_index: int; modules: List[ModuleOut]=[]
-    class Config: from_attributes = True
+    class Config: from_attributes=True
 
 class TestSetOut(BaseModel):
     id: int; name: str; chapters: List[ChapterOut]=[]
-    class Config: from_attributes = True
+    class Config: from_attributes=True
 
 class DppOut(BaseModel):
     id: int; title: str; chapter_name: Optional[str]; order_index: int
     duration_minutes: int; question_count: int=0
-    class Config: from_attributes = True
+    dpp_date: Optional[str]=None; is_free_for_non_premium: bool=False
+    class Config: from_attributes=True
 
 class DppSetOut(BaseModel):
     id: int; name: str; questions_per_dpp: int; dpps: List[DppOut]=[]
-    class Config: from_attributes = True
+    class Config: from_attributes=True
 
 class MockTestOut(BaseModel):
     id: int; title: str; duration_minutes: int; question_count: int=0
-    class Config: from_attributes = True
+    scheduled_date: Optional[str]=None; is_free_for_non_premium: bool=False
+    class Config: from_attributes=True
 
 class PremiumSubjectOut(BaseModel):
     id: int; name: SubjectName; is_active: bool
     dpp_sets: List[DppSetOut]=[]; test_sets: List[TestSetOut]=[]
     mock_tests: List[MockTestOut]=[]
-    class Config: from_attributes = True
+    class Config: from_attributes=True
 
 class PremiumTrackOut(BaseModel):
     id: int; name: str; display_name: str; is_active: bool
     subjects: List[PremiumSubjectOut]=[]
-    class Config: from_attributes = True
+    class Config: from_attributes=True
 
 
-# ── Subscriptions ─────────────────────────────────────────────────────────────
-PLAN_PRICES = {
-    SubscriptionPlan.INTRO:       80.0,
-    SubscriptionPlan.MONTHLY:     80.0,
-    SubscriptionPlan.HALF_YEARLY: 399.0,
-    SubscriptionPlan.ANNUAL:      750.0,
-}
-PLAN_MONTHS = {
-    SubscriptionPlan.INTRO:        1,
-    SubscriptionPlan.MONTHLY:      1,
-    SubscriptionPlan.HALF_YEARLY:  6,
-    SubscriptionPlan.ANNUAL:      12,
-}
+# ── Subscriptions ──────────────────────────────────────────────────────────────
+PLAN_PRICES  = {"INTRO":80.0,"MONTHLY":80.0,"HALF_YEARLY":399.0,"ANNUAL":750.0}
+PLAN_MONTHS  = {"INTRO":1,   "MONTHLY":1,   "HALF_YEARLY":6,    "ANNUAL":12}
 
 class SubscriptionCreate(BaseModel):
     plan: SubscriptionPlan; payment_gateway_ref: Optional[str]=None
@@ -196,13 +265,16 @@ class SubscriptionCreate(BaseModel):
 class SubscriptionOut(BaseModel):
     id: int; plan: SubscriptionPlan; status: SubscriptionStatus
     price_paid: float; current_period_end: datetime; auto_renew: bool
-    class Config: from_attributes = True
+    class Config: from_attributes=True
 
 class SubscriptionPlanInfo(BaseModel):
     plan: SubscriptionPlan; price: float; months: int; display: str; best_value: bool=False
 
+class RazorpayOrderOut(BaseModel):
+    order_id: str; amount: int; currency: str; key_id: str; plan: str
 
-# ── Leaderboard ───────────────────────────────────────────────────────────────
+
+# ── Leaderboard ────────────────────────────────────────────────────────────────
 class LeaderboardRow(BaseModel):
     rank: int; user_id: int; full_name: Optional[str]; email: str
     score: float; max_score: float; percentage: float
@@ -218,27 +290,27 @@ class DailyLeaderboardRow(BaseModel):
     daily_questions_solved: int; daily_score: float
 
 
-# ── Camera / Proctoring ───────────────────────────────────────────────────────
+# ── Camera ─────────────────────────────────────────────────────────────────────
 class CameraSessionStart(BaseModel):
-    attempt_context: str = ""   # e.g. "JEE Main 2024 Jan Shift 1"
+    attempt_context: str=""
 
 class CameraSessionOut(BaseModel):
     id: int; started_at: datetime; snapshot_count: int
-    class Config: from_attributes = True
+    class Config: from_attributes=True
 
 
-# ── News ──────────────────────────────────────────────────────────────────────
+# ── News ───────────────────────────────────────────────────────────────────────
 class NewsOut(BaseModel):
     id: int; title: str; body: Optional[str]
     exam_type: Optional[ExamType]; published_at: datetime
-    class Config: from_attributes = True
+    class Config: from_attributes=True
 
 class NewsCreate(BaseModel):
     title: str; body: Optional[str]=None; exam_type: Optional[ExamType]=None
 
 
-# ── Library ───────────────────────────────────────────────────────────────────
+# ── Library ────────────────────────────────────────────────────────────────────
 class LibraryItemOut(BaseModel):
     id: int; content_type: str; content_id: int; file_path: str
     downloaded_at: datetime; revoked: bool
-    class Config: from_attributes = True
+    class Config: from_attributes=True

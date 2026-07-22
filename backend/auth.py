@@ -16,16 +16,34 @@ SECRET_KEY = "dev-secret-key-change-this-in-production"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7   # 7 days
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# FIXED: Use Argon2 as primary, bcrypt as fallback for existing users
+# Argon2 has NO 72-byte limit and is more secure
+pwd_context = CryptContext(
+    schemes=["argon2", "bcrypt"],  # Try argon2 first, fallback to bcrypt
+    deprecated="auto",
+    argon2__memory_cost=102400,    # 100 MB
+    argon2__time_cost=3,
+    argon2__parallelism=8,
+)
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login", auto_error=False)
 
 
 def hash_password(password: str) -> str:
+    """Hash a password using Argon2 (no 72-byte limit)."""
     return pwd_context.hash(password)
 
 
 def verify_password(plain: str, hashed: str) -> bool:
-    return pwd_context.verify(plain, hashed)
+    """Verify a password against its hash.
+    Works with both Argon2 and bcrypt hashes."""
+    try:
+        return pwd_context.verify(plain, hashed)
+    except ValueError as e:
+        # If bcrypt fails due to length, try truncating
+        if "72 bytes" in str(e):
+            truncated = plain.encode('utf-8')[:72].decode('utf-8', errors='ignore')
+            return pwd_context.verify(truncated, hashed)
+        raise e
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
