@@ -71,13 +71,11 @@ class QuestionPublic(BaseModel):
     # option text
     option_a: Optional[str]; option_b: Optional[str]
     option_c: Optional[str]; option_d: Optional[str]
-    # per-option images (NEW)
+    # per-option images
     option_a_image_path: Optional[str]=None
     option_b_image_path: Optional[str]=None
     option_c_image_path: Optional[str]=None
     option_d_image_path: Optional[str]=None
-    # combined options image
-    options_image_path: Optional[str]=None
     marks_correct: float; marks_incorrect: float
     class Config: from_attributes=True
 

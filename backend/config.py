@@ -1,16 +1,14 @@
 
 import os
-
+from dotenv import load_dotenv
+load_dotenv()
 # ── Database ──────────────────────────────────────────────────────────────────
 DATABASE_URL = os.environ.get(
     "DATABASE_URL",
-    "sqlite:///./data/examapp.db"   # fallback for local dev
+    "sqlite:///./data/examapp.db"   
 )
 
-# For PostgreSQL, psycopg2 expects the scheme "postgresql+psycopg2://"
-# Heroku/Render set DATABASE_URL with "postgres://" — fix that here:
-if DATABASE_URL.startswith("postgres://"):
-    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql+psycopg2://", 1)
+DATABASE_URL =os.getenv("DATABASE_URL")
 
 # ── Auth ──────────────────────────────────────────────────────────────────────
 SECRET_KEY  = os.environ.get("SECRET_KEY", "dev-secret-change-in-production")
@@ -26,5 +24,5 @@ B2_KEY_ID          = os.environ.get("B2_KEY_ID", "")
 B2_APPLICATION_KEY = os.environ.get("B2_APPLICATION_KEY", "")
 B2_BUCKET_NAME     = os.environ.get("B2_BUCKET_NAME", "examprep-uploads")
 B2_BUCKET_ID       = os.environ.get("B2_BUCKET_ID", "")
-B2_ENDPOINT        = os.environ.get("B2_ENDPOINT", "")   # e.g. s3.us-west-004.backblazeb2.com
+B2_ENDPOINT        = os.environ.get("B2_ENDPOINT", "")   
 USE_B2             = bool(B2_KEY_ID and B2_APPLICATION_KEY)
