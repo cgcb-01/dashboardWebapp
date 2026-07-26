@@ -28,7 +28,7 @@ os.makedirs(f"{LOCAL_UPLOAD_BASE}/snapshots", exist_ok=True)
 
 def _b2_client():
     """Return a boto3 S3 client pointed at the B2 S3-compatible endpoint."""
-    endpoint = B2_ENDPOINT or f"https://s3.us-west-004.backblazeb2.com"
+    endpoint = B2_ENDPOINT or f"s3.eu-central-003.backblazeb2.com"
     if not endpoint.startswith("http"):
         endpoint = "https://" + endpoint
     return boto3.client(
